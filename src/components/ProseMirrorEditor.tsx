@@ -5,6 +5,9 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { debounce } from "../lib/utils";
 
 interface ProseMirrorEditorProps {
   documentId: Id<"documents">;
@@ -12,6 +15,9 @@ interface ProseMirrorEditorProps {
 
 export function ProseMirrorEditor({ documentId }: ProseMirrorEditorProps) {
   const sync = useBlockNoteSync<BlockNoteEditor>(api.prosemirror, documentId);
+
+  // ProseMirror automatically saves to its own storage
+  // No need for custom auto-save logic
 
   if (sync.isLoading) {
     return (
@@ -42,11 +48,7 @@ export function ProseMirrorEditor({ documentId }: ProseMirrorEditorProps) {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      <BlockNoteView 
-        editor={sync.editor} 
-        theme="light"
-        className="flex-1"
-      />
+      <BlockNoteView editor={sync.editor} theme="light" className="flex-1" />
     </div>
   );
 }

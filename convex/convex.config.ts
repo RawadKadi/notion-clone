@@ -6,4 +6,7 @@ const app = defineApp();
 app.use(prosemirrorSync);
 app.use(presence);
 
+// Remove the addFunctions call - functions are automatically exported
+// based on their file structure and naming
+
 export default app;

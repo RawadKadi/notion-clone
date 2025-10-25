@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as presence from "../presence.js";
 import type * as prosemirror from "../prosemirror.js";
 import type * as router from "../router.js";
+import type * as workspaces from "../workspaces.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   presence: typeof presence;
   prosemirror: typeof prosemirror;
   router: typeof router;
+  workspaces: typeof workspaces;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

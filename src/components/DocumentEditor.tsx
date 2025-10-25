@@ -2,9 +2,10 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ProseMirrorEditor } from "./ProseMirrorEditor";
 import { Presence } from "./Presence";
-import { Edit3, Globe, Lock, Trash2, Save } from "lucide-react";
+import { Edit3, Globe, Lock, Trash2, Save, Share2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface DocumentEditorProps {
@@ -16,7 +17,7 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
   const document = useQuery(api.documents.getDocument, { id: documentId });
   const updateDocument = useMutation(api.documents.updateDocument);
   const deleteDocument = useMutation(api.documents.deleteDocument);
-  
+
   const [title, setTitle] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,13 +52,15 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
 
   const handleTogglePublic = async () => {
     if (!document) return;
-    
+
     try {
       await updateDocument({
         id: documentId,
         isPublic: !document.isPublic,
       });
-      toast.success(document.isPublic ? "Document made private" : "Document made public");
+      toast.success(
+        document.isPublic ? "Document made private" : "Document made public"
+      );
     } catch (error) {
       toast.error("Failed to update document visibility");
     }
@@ -65,14 +68,44 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
 
   const handleDelete = async () => {
     if (!document) return;
-    
-    if (confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
+
+    if (
+      confirm(
+        "Are you sure you want to delete this document? This action cannot be undone."
+      )
+    ) {
       try {
         await deleteDocument({ id: documentId });
         toast.success("Document deleted");
         onClose();
       } catch (error) {
         toast.error("Failed to delete document");
+      }
+    }
+  };
+
+  const handleShare = async () => {
+    if (!document) return;
+
+    const shareUrl = `${window.location.origin}?document=${documentId}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: document.title,
+          text: `Check out this document: ${document.title}`,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // User cancelled the share
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard");
+      } catch (error) {
+        toast.error("Failed to copy link");
       }
     }
   };
@@ -113,7 +146,9 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
                   autoFocus
                   disabled={isSaving}
                 />
-                {isSaving && <Save className="h-4 w-4 text-gray-400 animate-spin" />}
+                {isSaving && (
+                  <Save className="h-4 w-4 text-gray-400 animate-spin" />
+                )}
               </div>
             ) : (
               <h1
@@ -125,10 +160,20 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
               </h1>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <Presence documentId={documentId} />
-            
+
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              className="flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              <span>Share</span>
+            </button>
+
+            {/* Existing Public/Private toggle button */}
             <button
               onClick={handleTogglePublic}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -149,7 +194,8 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
                 </>
               )}
             </button>
-            
+
+            {/* Existing Delete button */}
             <button
               onClick={handleDelete}
               className="flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
@@ -159,10 +205,10 @@ export function DocumentEditor({ documentId, onClose }: DocumentEditorProps) {
             </button>
           </div>
         </div>
-        
+
         <div className="text-sm text-gray-500">
-          Last modified {new Date(document.lastModified).toLocaleDateString()} at{" "}
-          {new Date(document.lastModified).toLocaleTimeString()}
+          Last modified {new Date(document.lastModified).toLocaleDateString()}{" "}
+          at {new Date(document.lastModified).toLocaleTimeString()}
         </div>
       </div>
 

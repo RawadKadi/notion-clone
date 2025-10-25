@@ -5,9 +5,10 @@ import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { DocumentEditor } from "./components/DocumentEditor";
 import { Sidebar } from "./components/Sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Id } from "../convex/_generated/dataModel";
 import { FileText } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 export default function App() {
   return (
@@ -20,7 +21,53 @@ export default function App() {
 
 function Content() {
   const loggedInUser = useQuery(api.auth.loggedInUser);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<Id<"documents"> | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] =
+    useState<Id<"workspaces"> | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] =
+    useState<Id<"documents"> | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sync URL with selected document
+  useEffect(() => {
+    const documentId = searchParams.get("document");
+    const workspaceId = searchParams.get("workspace");
+
+    if (documentId) {
+      setSelectedDocumentId(documentId as Id<"documents">);
+    }
+    if (workspaceId) {
+      setSelectedWorkspaceId(workspaceId as Id<"workspaces">);
+    }
+  }, [searchParams]);
+
+  const handleSelectWorkspace = (id: Id<"workspaces">) => {
+    setSelectedWorkspaceId(id);
+    setSelectedDocumentId(null);
+    setSearchParams({ workspace: id });
+  };
+
+  const handleSelectDocument = (id: Id<"documents">) => {
+    setSelectedDocumentId(id);
+    const params: Record<string, string> = {};
+    if (selectedWorkspaceId) {
+      params.workspace = selectedWorkspaceId;
+    }
+    params.document = id;
+    setSearchParams(params);
+  };
+
+  const handleCloseDocument = () => {
+    setSelectedDocumentId(null);
+    const params: Record<string, string> = {};
+    if (selectedWorkspaceId) {
+      params.workspace = selectedWorkspaceId;
+    }
+    setSearchParams(params);
+  };
+
+  useEffect(() => {
+    console.log("Logged in user:", loggedInUser);
+  }, [loggedInUser]);
 
   if (loggedInUser === undefined) {
     return (
@@ -37,7 +84,9 @@ function Content() {
           <div className="w-full max-w-md mx-auto p-8">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome</h1>
-              <p className="text-gray-600">Sign in to start collaborating on documents</p>
+              <p className="text-gray-600">
+                Sign in to start collaborating on documents
+              </p>
             </div>
             <SignInForm />
           </div>
@@ -47,28 +96,38 @@ function Content() {
       <Authenticated>
         <div className="flex w-full h-screen">
           <Sidebar
+            selectedWorkspaceId={selectedWorkspaceId}
             selectedDocumentId={selectedDocumentId}
-            onSelectDocument={setSelectedDocumentId}
+            onSelectWorkspace={handleSelectWorkspace}
+            onSelectDocument={handleSelectDocument}
             onCreateDocument={() => {}}
+            onCreateWorkspace={() => {}}
+            setSelectedWorkspaceId={setSelectedWorkspaceId}
           />
-          
+
           {selectedDocumentId ? (
             <DocumentEditor
               documentId={selectedDocumentId}
-              onClose={() => setSelectedDocumentId(null)}
+              onClose={handleCloseDocument}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-white">
               <div className="text-center max-w-md">
                 <FileText className="h-16 w-16 text-gray-300 mx-auto mb-6" />
                 <h2 className="text-2xl font-semibold text-gray-900 mb-3">
-                  Welcome to your workspace
+                  {selectedWorkspaceId
+                    ? "Select a document"
+                    : "Welcome to your workspace"}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  Select a document from the sidebar to start editing, or create a new one to begin collaborating.
+                  {selectedWorkspaceId
+                    ? "Choose a document from the sidebar to start editing, or create a new one."
+                    : "Select a workspace from the sidebar to view its documents."}
                 </p>
                 <div className="flex items-center justify-between text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
-                  <span>Signed in as {loggedInUser?.name || loggedInUser?.email}</span>
+                  <span>
+                    Signed in as {loggedInUser?.name || loggedInUser?.email}
+                  </span>
                   <SignOutButton />
                 </div>
               </div>
